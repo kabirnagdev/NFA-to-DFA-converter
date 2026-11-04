@@ -15,6 +15,7 @@ import pandas as pd
 from typing import Dict, Tuple, Set, Optional
 
 from core.nfa import NFA
+from core.conversion import SubsetConstructionEngine
 from core.validation import NFAValidator, ValidationResult
 
 
@@ -68,15 +69,28 @@ PRESETS = {
 
 
 def load_preset_into_state(preset_name: str):
-    """Load selected preset into session state."""
+    """Load selected preset into session state and immediately initialize NFA & DFA."""
     preset = PRESETS[preset_name]
     st.session_state["input_states"] = preset["states"]
     st.session_state["input_alphabet"] = preset["alphabet"]
     st.session_state["input_initial"] = preset["initial"]
     st.session_state["input_finals"] = preset["finals"]
     st.session_state["nfa_trans_dict"] = dict(preset["transitions"])
+    st.session_state.pop("trans_editor_table", None)
     st.session_state["validation_result"] = None
-    st.session_state["conversion_result"] = None
+
+    raw_states = [s.strip() for s in preset["states"].split(",") if s.strip()]
+    raw_alphabet = [a.strip() for a in preset["alphabet"].split(",") if a.strip()]
+    raw_initial = preset["initial"].strip()
+    raw_finals = [f.strip() for f in preset["finals"].split(",") if f.strip()]
+    trans_map = {}
+    for (s, a), targets_str in preset["transitions"].items():
+        if targets_str:
+            trans_map[(s, a)] = {t.strip() for t in targets_str.split(",") if t.strip()}
+
+    nfa_obj = NFA(raw_states, raw_alphabet, raw_initial, raw_finals, trans_map)
+    st.session_state["current_nfa"] = nfa_obj
+    st.session_state["conversion_result"] = SubsetConstructionEngine(nfa_obj).convert()
 
 
 def reset_to_empty():
@@ -91,12 +105,14 @@ def reset_to_empty():
         ("q1", "0"): "",
         ("q1", "1"): "",
     }
+    st.session_state.pop("trans_editor_table", None)
     st.session_state["validation_result"] = None
     st.session_state["conversion_result"] = None
+    st.session_state["current_nfa"] = None
 
 
 def build_transition_table_df(states: list[str], alphabet: list[str], trans_map: dict) -> pd.DataFrame:
-    """Build a clean dataframe: Current State, Input Symbol, Next States."""
+    """Build a clean dataframe: Current State, Symbol, Next States."""
     rows = []
     for s in states:
         for a in alphabet:
@@ -125,13 +141,13 @@ def render_nfa_input_controls() -> Optional[NFA]:
     with btn_load:
         st.write("")
         st.write("")
-        if st.button("Load Preset", use_container_width=True):
+        if st.button("Load Preset", key="btn_load_preset", use_container_width=True):
             load_preset_into_state(selected_preset)
             st.rerun()
     with btn_reset:
         st.write("")
         st.write("")
-        if st.button("Reset", use_container_width=True):
+        if st.button("Reset", key="btn_reset_all", use_container_width=True):
             reset_to_empty()
             st.rerun()
 
@@ -209,8 +225,8 @@ def render_nfa_input_controls() -> Optional[NFA]:
     st.session_state["nfa_trans_dict"] = stored_dict
 
     col_act1, col_act2, _ = st.columns([1.2, 1.8, 3])
-    validate_clicked = col_act1.button("Validate", use_container_width=True)
-    convert_clicked = col_act2.button("Convert to DFA", type="primary", use_container_width=True)
+    validate_clicked = col_act1.button("Validate", key="btn_validate_nfa", use_container_width=True)
+    convert_clicked = col_act2.button("Convert to DFA", key="btn_convert_dfa", type="primary", use_container_width=True)
 
     validation_res = NFAValidator.validate_raw(
         states=raw_states,
@@ -245,7 +261,11 @@ def render_nfa_input_controls() -> Optional[NFA]:
         st.session_state["current_nfa"] = nfa_obj
 
         if convert_clicked:
-            st.session_state["trigger_conversion"] = True
+            engine = SubsetConstructionEngine(nfa_obj)
+            st.session_state["conversion_result"] = engine.convert()
+            st.session_state["nav_selection"] = "4. DFA Result"
+            st.rerun()
+
         return nfa_obj
 
     return None
