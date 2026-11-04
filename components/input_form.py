@@ -263,7 +263,7 @@ def render_nfa_input_controls() -> Optional[NFA]:
         if convert_clicked:
             engine = SubsetConstructionEngine(nfa_obj)
             st.session_state["conversion_result"] = engine.convert()
-            st.session_state["nav_selection"] = "4. DFA Result"
+            st.session_state["nav_target"] = "4. DFA Result"
             st.rerun()
 
         return nfa_obj

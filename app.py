@@ -58,8 +58,8 @@ NAVIGATION_ITEMS = [
 ]
 
 def navigate_to(page_name: str):
-    """Safely change pages and rerun Streamlit immediately."""
-    st.session_state["nav_selection"] = page_name
+    """Safely change pages via nav_target before widget instantiation."""
+    st.session_state["nav_target"] = page_name
     st.rerun()
 
 
@@ -91,6 +91,10 @@ init_default_automata()
 # Sidebar Navigation
 # ---------------------------------------------------------------------------
 st.sidebar.title("NFA → DFA Converter")
+
+# Consume pending navigation target before widget instantiation
+if "nav_target" in st.session_state:
+    st.session_state["nav_selection"] = st.session_state.pop("nav_target")
 
 if "nav_selection" not in st.session_state or st.session_state["nav_selection"] not in NAVIGATION_ITEMS:
     st.session_state["nav_selection"] = "1. Overview"
@@ -333,10 +337,12 @@ elif selected_page == "6. String Tester":
 
         for i, (q_str, q_lbl) in enumerate(zip(quick_strings, button_labels)):
             if qb_cols[i].button(q_lbl, key=f"quick_btn_{i}", use_container_width=True):
-                st.session_state["sim_input_text"] = q_str
+                st.session_state["sim_input_target"] = q_str
                 st.rerun()
 
-        if "sim_input_text" not in st.session_state:
+        if "sim_input_target" in st.session_state:
+            st.session_state["sim_input_text"] = st.session_state.pop("sim_input_target")
+        elif "sim_input_text" not in st.session_state:
             st.session_state["sim_input_text"] = "01"
 
         sim_input_col, run_btn_col = st.columns([4, 1])
