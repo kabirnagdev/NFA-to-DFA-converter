@@ -1,13 +1,13 @@
 """
 NFA Input Form Component.
 
-Provides configuration interfaces for:
+Provides a clean, human-friendly interface for:
 - State definitions (Q)
 - Alphabet definition (Sigma)
-- Initial state (q0)
-- Final / accepting states (F)
-- Tabular interactive transition editor (st.data_editor)
-- Preset loading, validation triggers, and reset actions
+- Start state (q0)
+- Accepting states (F)
+- Tabular interactive transition editor
+- Preset selection, validation, and reset actions
 """
 
 import streamlit as st
@@ -18,9 +18,9 @@ from core.nfa import NFA
 from core.validation import NFAValidator, ValidationResult
 
 
-# Preset definitions
+# Educational presets
 PRESETS = {
-    "Built-in: Strings ending in '01' (Default)": {
+    "Demo: Strings ending in '01'": {
         "states": "q0, q1, q2",
         "alphabet": "0, 1",
         "initial": "q0",
@@ -34,7 +34,7 @@ PRESETS = {
             ("q2", "1"): "",
         },
     },
-    "Example 2: Strings containing substring '010'": {
+    "Strings containing '010'": {
         "states": "q0, q1, q2, q3",
         "alphabet": "0, 1",
         "initial": "q0",
@@ -50,7 +50,7 @@ PRESETS = {
             ("q3", "1"): "q3",
         },
     },
-    "Example 3: Strings with 'a' at 2nd position": {
+    "Second symbol is 'a'": {
         "states": "q0, q1, q2",
         "alphabet": "a, b",
         "initial": "q0",
@@ -80,7 +80,7 @@ def load_preset_into_state(preset_name: str):
 
 
 def reset_to_empty():
-    """Reset configuration to empty."""
+    """Reset configuration to blank defaults."""
     st.session_state["input_states"] = "q0, q1"
     st.session_state["input_alphabet"] = "0, 1"
     st.session_state["input_initial"] = "q0"
@@ -96,35 +96,29 @@ def reset_to_empty():
 
 
 def build_transition_table_df(states: list[str], alphabet: list[str], trans_map: dict) -> pd.DataFrame:
-    """Build a tabular dataframe with columns: [Current State, Input Symbol, Next States]."""
+    """Build a clean dataframe: Current State, Input Symbol, Next States."""
     rows = []
     for s in states:
         for a in alphabet:
             val = trans_map.get((s, a), "")
             rows.append({
                 "Current State": s,
-                "Input Symbol": a,
-                "Next States (comma-separated or empty)": val,
+                "Symbol": a,
+                "Next States": val,
             })
     return pd.DataFrame(rows)
 
 
 def render_nfa_input_controls() -> Optional[NFA]:
-    """
-    Renders the complete NFA input UI and returns the constructed NFA if valid.
-    """
-    # Initialize session state if not already set
+    """Renders the NFA input UI and returns the validated NFA."""
     if "input_states" not in st.session_state:
-        load_preset_into_state("Built-in: Strings ending in '01' (Default)")
+        load_preset_into_state("Demo: Strings ending in '01'")
 
-    st.subheader("1. Automaton Formal Definition")
-    st.caption("Specify the 5-tuple components: Q, Σ, q0, F, and δ.")
-
-    # Preset selection bar
+    # Preset selection
     preset_col, btn_load, btn_reset = st.columns([3, 1, 1])
     with preset_col:
         selected_preset = st.selectbox(
-            "Select Example Preset:",
+            "Load Example Preset",
             options=list(PRESETS.keys()),
             key="preset_dropdown",
         )
@@ -137,52 +131,48 @@ def render_nfa_input_controls() -> Optional[NFA]:
     with btn_reset:
         st.write("")
         st.write("")
-        if st.button("Reset All", use_container_width=True):
+        if st.button("Reset", use_container_width=True):
             reset_to_empty()
             st.rerun()
 
     # Form inputs
+    st.markdown("### Automaton Setup")
     col1, col2 = st.columns(2)
     with col1:
         states_input = st.text_input(
-            "Set of States (Q) [comma-separated]:",
+            "States (Q):",
             value=st.session_state.get("input_states", "q0, q1, q2"),
             key="input_states",
-            help="E.g., q0, q1, q2",
+            placeholder="q0, q1, q2",
         )
         initial_input = st.text_input(
-            "Initial State (q0):",
+            "Start State (q0):",
             value=st.session_state.get("input_initial", "q0"),
             key="input_initial",
-            help="Must be one of the states declared in Q.",
+            placeholder="q0",
         )
     
     with col2:
         alphabet_input = st.text_input(
-            "Input Alphabet (Σ) [comma-separated]:",
+            "Alphabet (Σ):",
             value=st.session_state.get("input_alphabet", "0, 1"),
             key="input_alphabet",
-            help="E.g., 0, 1 or a, b",
+            placeholder="0, 1",
         )
         finals_input = st.text_input(
-            "Final / Accepting States (F) [comma-separated]:",
+            "Accepting States (F):",
             value=st.session_state.get("input_finals", "q2"),
             key="input_finals",
-            help="E.g., q2 or q1, q2",
+            placeholder="q2",
         )
 
-    # Parse inputs into lists
     raw_states = [s.strip() for s in states_input.split(",") if s.strip()]
     raw_alphabet = [a.strip() for a in alphabet_input.split(",") if a.strip()]
     raw_initial = initial_input.strip()
     raw_finals = [f.strip() for f in finals_input.split(",") if f.strip()]
 
-    st.subheader("2. Transition Function (δ) Editor")
-    st.write(
-        "Edit the next states for each pair `(Current State, Input Symbol)`. "
-        "Separate multiple target states with commas (e.g. `q0, q1`). "
-        "Leave blank or enter `-` for no transition (empty set ∅)."
-    )
+    st.markdown("### Transition Table (δ)")
+    st.caption("Specify next states for each pair. Separate multiple states with commas (e.g. `q0, q1`). Leave blank for no transition.")
 
     current_trans_map = st.session_state.get("nfa_trans_dict", {})
     trans_df = build_transition_table_df(raw_states, raw_alphabet, current_trans_map)
@@ -194,24 +184,23 @@ def render_nfa_input_controls() -> Optional[NFA]:
         num_rows="fixed",
         column_config={
             "Current State": st.column_config.TextColumn(disabled=True),
-            "Input Symbol": st.column_config.TextColumn(disabled=True),
-            "Next States (comma-separated or empty)": st.column_config.TextColumn(
-                help="Type states e.g. 'q0, q1' or leave empty for ∅",
+            "Symbol": st.column_config.TextColumn(disabled=True),
+            "Next States": st.column_config.TextColumn(
+                help="Type target states like 'q0, q1' or leave blank",
             ),
         },
         key="trans_editor_table",
     )
 
-    # Convert edited_df back to dictionary
     updated_trans: Dict[Tuple[str, str], Set[str]] = {}
     stored_dict: Dict[Tuple[str, str], str] = {}
     for _, row in edited_df.iterrows():
         st_val = str(row["Current State"]).strip()
-        sym_val = str(row["Input Symbol"]).strip()
-        raw_targets = str(row["Next States (comma-separated or empty)"]).strip()
+        sym_val = str(row["Symbol"]).strip()
+        raw_targets = str(row["Next States"]).strip()
         stored_dict[(st_val, sym_val)] = raw_targets
         
-        if raw_targets and raw_targets != "-" and raw_targets != "∅":
+        if raw_targets and raw_targets != "-" and raw_targets != "∅" and raw_targets != "None":
             targets = {t.strip() for t in raw_targets.split(",") if t.strip()}
             updated_trans[(st_val, sym_val)] = targets
         else:
@@ -219,12 +208,10 @@ def render_nfa_input_controls() -> Optional[NFA]:
 
     st.session_state["nfa_trans_dict"] = stored_dict
 
-    # Action buttons
-    col_act1, col_act2, _ = st.columns([1.5, 1.5, 3])
-    validate_clicked = col_act1.button("Validate NFA", use_container_width=True)
+    col_act1, col_act2, _ = st.columns([1.2, 1.8, 3])
+    validate_clicked = col_act1.button("Validate", use_container_width=True)
     convert_clicked = col_act2.button("Convert to DFA", type="primary", use_container_width=True)
 
-    # Perform validation
     validation_res = NFAValidator.validate_raw(
         states=raw_states,
         alphabet=raw_alphabet,
@@ -236,19 +223,17 @@ def render_nfa_input_controls() -> Optional[NFA]:
     if validate_clicked or "validation_result" in st.session_state:
         st.session_state["validation_result"] = validation_res
 
-    # Display validation feedback
     if st.session_state.get("validation_result"):
         val_res: ValidationResult = st.session_state["validation_result"]
         if val_res.is_valid:
-            st.success("NFA definition is valid and meets theoretical constraints.")
+            st.success("NFA is valid and ready for conversion.")
             if val_res.has_warnings:
                 for w in val_res.warnings:
-                    st.warning(f"Notice: {w}")
+                    st.warning(f"Note: {w}")
         else:
             for err in val_res.errors:
-                st.error(f"Validation Error: {err}")
+                st.error(f"Error: {err}")
 
-    # Build and store NFA object
     if validation_res.is_valid:
         nfa_obj = NFA(
             states=raw_states,

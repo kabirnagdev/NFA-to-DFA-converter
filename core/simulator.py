@@ -134,15 +134,9 @@ class AutomataSimulator:
         subset_fmt = format_subset(current_subset)
         
         if is_accepted:
-            expl = (
-                f"DFA halted in state {current_state} = {subset_fmt}, which is an accepting state "
-                f"({current_state} ∈ F'). Input '{input_string or 'ε'}' is ACCEPTED."
-            )
+            expl = f"DFA accepted '{input_string or 'ε'}' in state {current_state} = {subset_fmt} (final state)."
         else:
-            expl = (
-                f"DFA halted in state {current_state} = {subset_fmt}, which is NOT an accepting state "
-                f"({current_state} ∉ F'). Input '{input_string or 'ε'}' is REJECTED."
-            )
+            expl = f"DFA rejected '{input_string or 'ε'}' in state {current_state} = {subset_fmt} (non-final state)."
 
         return SimulationResult(
             automaton_type="DFA",
@@ -202,17 +196,9 @@ class AutomataSimulator:
 
         if is_accepted:
             intersecting = sorted(list(active_states.intersection(nfa.final_states)))
-            expl = (
-                f"NFA finished with active state set {active_fmt}. "
-                f"Contains accepting state(s) {{{', '.join(intersecting)}}} from F = {final_fmt}. "
-                f"Input '{input_string or 'ε'}' is ACCEPTED."
-            )
+            expl = f"NFA accepted '{input_string or 'ε'}' with active states {active_fmt} (contains final state {', '.join(intersecting)})."
         else:
-            expl = (
-                f"NFA finished with active state set {active_fmt}. "
-                f"Contains no accepting states from F = {final_fmt}. "
-                f"Input '{input_string or 'ε'}' is REJECTED."
-            )
+            expl = f"NFA rejected '{input_string or 'ε'}' with active states {active_fmt} (no final states reached)."
 
         return SimulationResult(
             automaton_type="NFA",
@@ -234,15 +220,11 @@ class AutomataSimulator:
 
         if is_equiv:
             expl = (
-                f"Equivalence Confirmed: Both NFA and DFA produced the identical result "
-                f"({verdict}) on string '{input_string or 'ε'}'. "
-                f"At termination, NFA active states {format_subset(frozenset(nfa_res.final_states_reached))} "
-                f"exactly match the subset represented by DFA state {list(dfa_res.final_states_reached)[0]}."
+                f"Both automata agree: '{input_string or 'ε'}' is {verdict}. "
+                f"NFA active states {format_subset(frozenset(nfa_res.final_states_reached))} match DFA state {list(dfa_res.final_states_reached)[0]}."
             )
         else:
-            expl = (
-                f"Discrepancy Detected! NFA returned {nfa_res.is_accepted} while DFA returned {dfa_res.is_accepted}."
-            )
+            expl = f"Discrepancy: NFA gave {nfa_res.is_accepted} while DFA gave {dfa_res.is_accepted}."
 
         return ComparisonResult(
             input_string=input_string,

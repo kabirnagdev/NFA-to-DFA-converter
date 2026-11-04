@@ -165,26 +165,15 @@ class SubsetConstructionEngine:
 
                 dfa_transitions[(current_label, sym)] = target_label
 
-                # Academic explanation text
+                # Clear explanation text
                 curr_fmt = format_subset(current_subset)
                 tgt_fmt = format_subset(target_subset)
                 
                 if not current_subset:
-                    expl = (
-                        f"Empty subset {current_label} = ∅ on symbol '{sym}' remains ∅ "
-                        f"(Trap State {target_label})."
-                    )
+                    expl = f"Trap state {current_label} = ∅ on '{sym}' loops to ∅ ({target_label})."
                 else:
-                    trans_parts = [
-                        f"δ({q}, {sym}) = {format_subset(frozenset(targets))}"
-                        for q, targets in sorted(individual_trans.items())
-                    ]
-                    unions_str = " ∪ ".join([f"δ({q}, {sym})" for q in sorted(individual_trans.keys())])
-                    res_unions = " ∪ ".join([format_subset(frozenset(t)) for _, t in sorted(individual_trans.items())])
-                    new_tag = f"Newly discovered DFA state {target_label} = {tgt_fmt}" if is_new else f"Existing DFA state {target_label} = {tgt_fmt}"
-                    expl = (
-                        f"δ'({current_label}, {sym}) = {unions_str} = {res_unions} = {tgt_fmt}. {new_tag}."
-                    )
+                    new_tag = f"discovered new state {target_label}" if is_new else f"points to existing state {target_label}"
+                    expl = f"δ'({current_label}, {sym}) = {tgt_fmt} ({new_tag})."
 
                 step = ConversionStep(
                     step_number=step_counter,

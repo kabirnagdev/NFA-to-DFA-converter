@@ -1,9 +1,7 @@
 """
 Transition Table Display Components.
 
-Renders high-clarity tabular representations of NFA and DFA transition functions:
-- NFA transition list and matrix views
-- DFA state subset mapping and transition table with acceptance status markers
+Renders clean tabular views for NFA and DFA transitions.
 """
 
 import streamlit as st
@@ -31,7 +29,6 @@ def render_nfa_table(nfa: NFA):
     """Render NFA transition table in Streamlit."""
     df = get_nfa_matrix_df(nfa)
     
-    # Add indicators for initial and final states
     def format_state_col(state_name: str) -> str:
         prefix = ""
         if state_name == nfa.initial_state:
@@ -48,7 +45,7 @@ def render_nfa_table(nfa: NFA):
         use_container_width=True,
         hide_index=True,
     )
-    st.caption("Legend: → Initial State | * Final / Accepting State | ∅ Empty set (no transition)")
+    st.caption("→ Start State &nbsp;|&nbsp; * Accepting State &nbsp;|&nbsp; ∅ No Transition")
 
 
 def get_dfa_matrix_df(dfa: DFA) -> pd.DataFrame:
@@ -60,21 +57,21 @@ def get_dfa_matrix_df(dfa: DFA) -> pd.DataFrame:
         
         status_flags = []
         if label == dfa.initial_state:
-            status_flags.append("Initial (→)")
+            status_flags.append("Start (→)")
         if label in dfa.final_states:
-            status_flags.append("Final (*)")
+            status_flags.append("Accept (*)")
         if not status_flags:
             status_flags.append("Normal")
 
         row: Dict[str, Any] = {
-            "DFA State": label,
+            "State": label,
             "NFA Subset": subset_str,
-            "Status": ", ".join(status_flags),
+            "Type": ", ".join(status_flags),
         }
         for sym in dfa.sorted_alphabet:
             target = dfa.get_transition(label, sym)
             target_subset = dfa.state_subsets.get(target, frozenset()) if target else frozenset()
-            row[f"δ'({sym})"] = f"{target} ({format_subset(target_subset)})" if target else "—"
+            row[f"On '{sym}'"] = f"{target} ({format_subset(target_subset)})" if target else "—"
         rows.append(row)
     return pd.DataFrame(rows)
 
@@ -87,4 +84,4 @@ def render_dfa_table(dfa: DFA):
         use_container_width=True,
         hide_index=True,
     )
-    st.caption("A DFA state is accepting (*) if its constituent NFA subset contains at least one NFA final state.")
+    st.caption("A DFA state is accepting (*) if its subset contains any NFA accepting state.")
