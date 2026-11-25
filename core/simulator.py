@@ -1,9 +1,9 @@
 """
 Automata String Simulator Module.
 
-Executes string evaluations synchronously on both NFA and DFA:
+Executes string evaluations synchronously on both NFA (including ε-NFA) and DFA:
 - Step-by-step state traversal for DFA
-- Step-by-step active state set tracking for NFA
+- Step-by-step active state set tracking for NFA (with ε-closure when applicable)
 - Empty string (epsilon) handling
 - Alphabet symbol validation
 - Comparison and formal proof of language equivalence on tested strings
@@ -38,6 +38,7 @@ class NFAStep:
     per_state_transitions: Dict[str, Set[str]]
     next_states: Set[str]
     is_accepting: bool
+    raw_move_states: Optional[Set[str]] = None
 
 
 @dataclass
@@ -73,13 +74,13 @@ class AutomataSimulator:
         """
         if not input_string:
             return True, None
-        
+
         invalid_symbols = set(input_string) - alphabet
         if invalid_symbols:
             inv_str = ", ".join(f"'{s}'" for s in sorted(invalid_symbols))
             alph_str = ", ".join(f"'{a}'" for a in sorted(alphabet))
             return False, f"String contains symbol(s) {inv_str} not in alphabet Σ = {{{alph_str}}}."
-        
+
         return True, None
 
     @classmethod
@@ -90,9 +91,9 @@ class AutomataSimulator:
         """
         current_state = dfa.initial_state
         current_subset = dfa.state_subsets.get(current_state, frozenset())
-        
+
         steps: List[DFAStep] = []
-        
+
         # Initial step (Step 0)
         steps.append(
             DFAStep(
@@ -132,7 +133,7 @@ class AutomataSimulator:
 
         is_accepted = dfa.is_final(current_state)
         subset_fmt = format_subset(current_subset)
-        
+
         if is_accepted:
             expl = f"DFA accepted '{input_string or 'ε'}' in state {current_state} = {subset_fmt} (final state)."
         else:
@@ -150,10 +151,15 @@ class AutomataSimulator:
     @classmethod
     def simulate_nfa(cls, nfa: NFA, input_string: str) -> SimulationResult:
         """
-        Simulate NFA execution on input string w.
+        Simulate NFA (or ε-NFA) execution on input string w.
         NFA tracks the set of all simultaneously active states.
         """
-        active_states: Set[str] = {nfa.initial_state}
+        is_eps = nfa.has_epsilon_transitions
+        active_states: Set[str] = (
+            set(nfa.epsilon_closure({nfa.initial_state}))
+            if is_eps
+            else {nfa.initial_state}
+        )
         steps: List[NFAStep] = []
 
         is_acc = bool(active_states.intersection(nfa.final_states))
@@ -165,17 +171,23 @@ class AutomataSimulator:
                 per_state_transitions={},
                 next_states=set(active_states),
                 is_accepting=is_acc,
+                raw_move_states={nfa.initial_state} if is_eps else None,
             )
         )
 
         for idx, sym in enumerate(input_string):
             per_state: Dict[str, Set[str]] = {}
-            next_active: Set[str] = set()
+            raw_next: Set[str] = set()
 
             for q in sorted(active_states):
                 targets = nfa.get_transitions(q, sym)
                 per_state[q] = set(targets)
-                next_active.update(targets)
+                raw_next.update(targets)
+
+            if is_eps and raw_next:
+                next_active = set(nfa.epsilon_closure(raw_next))
+            else:
+                next_active = set(raw_next)
 
             is_acc = bool(next_active.intersection(nfa.final_states))
             steps.append(
@@ -186,19 +198,25 @@ class AutomataSimulator:
                     per_state_transitions=per_state,
                     next_states=set(next_active),
                     is_accepting=is_acc,
+                    raw_move_states=set(raw_next) if is_eps else None,
                 )
             )
             active_states = next_active
 
         is_accepted = bool(active_states.intersection(nfa.final_states))
         active_fmt = format_subset(frozenset(active_states))
-        final_fmt = format_subset(frozenset(nfa.final_states))
 
         if is_accepted:
             intersecting = sorted(list(active_states.intersection(nfa.final_states)))
-            expl = f"NFA accepted '{input_string or 'ε'}' with active states {active_fmt} (contains final state {', '.join(intersecting)})."
+            expl = (
+                f"NFA accepted '{input_string or 'ε'}' with active states {active_fmt} "
+                f"(contains final state {', '.join(intersecting)})."
+            )
         else:
-            expl = f"NFA rejected '{input_string or 'ε'}' with active states {active_fmt} (no final states reached)."
+            expl = (
+                f"NFA rejected '{input_string or 'ε'}' with active states {active_fmt} "
+                f"(no final states reached)."
+            )
 
         return SimulationResult(
             automaton_type="NFA",
@@ -221,7 +239,8 @@ class AutomataSimulator:
         if is_equiv:
             expl = (
                 f"Both automata agree: '{input_string or 'ε'}' is {verdict}. "
-                f"NFA active states {format_subset(frozenset(nfa_res.final_states_reached))} match DFA state {list(dfa_res.final_states_reached)[0]}."
+                f"NFA active states {format_subset(frozenset(nfa_res.final_states_reached))} "
+                f"match DFA state {list(dfa_res.final_states_reached)[0]}."
             )
         else:
             expl = f"Discrepancy: NFA gave {nfa_res.is_accepted} while DFA gave {dfa_res.is_accepted}."

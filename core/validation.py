@@ -6,12 +6,14 @@ Automata Theory principles before conversion or visualization:
 - Non-empty states set and alphabet
 - Declared initial state within state set
 - Final states subset of declared state set
-- Transitions refer strictly to declared states and alphabet symbols
+- Transitions refer strictly to declared states and alphabet symbols (or ε)
 - Treatment of empty transitions as empty set (∅), not an error
 """
 
 from dataclasses import dataclass, field
 from typing import List, Set, Dict, Tuple, Iterable, Any, Optional
+
+from .nfa import EPSILON
 
 
 @dataclass
@@ -44,7 +46,11 @@ class NFAValidator:
         warnings: List[str] = []
 
         clean_states: Set[str] = {str(s).strip() for s in states if str(s).strip()}
-        clean_alphabet: Set[str] = {str(a).strip() for a in alphabet if str(a).strip()}
+        clean_alphabet: Set[str] = {
+            str(a).strip()
+            for a in alphabet
+            if str(a).strip() and str(a).strip() != EPSILON
+        }
         clean_initial: str = str(initial_state).strip()
         clean_final: Set[str] = {str(f).strip() for f in final_states if str(f).strip()}
 
@@ -55,7 +61,7 @@ class NFAValidator:
         # 2. Alphabet validation
         if not clean_alphabet:
             errors.append("Alphabet Σ cannot be empty. Please declare at least one input symbol (e.g. 0, 1).")
-        
+
         # Check for whitespace/comma delimiters inside symbols
         for sym in clean_alphabet:
             if " " in sym or "," in sym:
@@ -87,19 +93,19 @@ class NFAValidator:
             for (st, sym), targets in transitions.items():
                 s_st = str(st).strip()
                 s_sym = str(sym).strip()
-                
+
                 # Check origin state
                 if clean_states and s_st not in clean_states:
                     errors.append(
                         f"Transition origin state '{s_st}' is not in declared states Q."
                     )
-                
-                # Check symbol
-                if clean_alphabet and s_sym not in clean_alphabet:
+
+                # Check symbol (allow EPSILON for ε-NFA transitions)
+                if clean_alphabet and s_sym not in clean_alphabet and s_sym != EPSILON:
                     errors.append(
                         f"Transition symbol '{s_sym}' is not in declared alphabet Σ."
                     )
-                
+
                 # Check target states
                 if targets:
                     for t in targets:

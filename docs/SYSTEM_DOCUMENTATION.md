@@ -677,3 +677,78 @@ $$F' = \{C\}$$
 - **NFA Simulation**: Halts in $\{q_0\}$. $\{q_0\} \cap \{q_2\} = \emptyset \implies \mathbf{REJECTED}$.
 - **DFA Simulation**: Halts in state $A$. $A \notin F' \implies \mathbf{REJECTED}$.
 - **Decision**: Both automata reject. **Equivalence Verified**.
+
+
+---
+
+## Milestone 2: Interactive Algorithm Simulator & ε-NFA Extension
+
+### M2.1 Problem Statement & Objectives
+While Milestone 1 produced an accurate static conversion and trace summary, undergraduate Automata Theory students benefit most from observing the **Rabin–Scott Subset Construction** algorithm execute *live*—watching the FIFO queue evolve, mathematical unions compute dynamically, the transition table populate cell-by-cell, and the DFA graph grow state-by-state.
+
+**Milestone 2 Objectives:**
+1. **Live Snapshot-Based Animation:** Capture deterministic `ConversionSnapshot` records at each `(state, symbol)` micro-step so Play, Pause, Next Step, Previous Step, Reset, and Speed controls replay the exact algorithm state without mutating or corrupting computation.
+2. **Continuous Live Transition Table:** Render only discovered DFA states and computed transitions at each step, visibly marking pending cells (`… pending`) and highlighting the active row, active transition cell, newly discovered states, and accepting states.
+3. **Animated Automata Diagrams:** Render synchronized NFA and partial DFA Graphviz diagrams highlighting active subsets, newly discovered states, active transition edges, double-circle accepting states, and explicit empty-set (`∅`) trap states.
+4. **Epsilon-NFA (`ε-NFA`) Support:** Extend `NFA` with `epsilon_closure(S)` computation, update `SubsetConstructionEngine` to initialize with `ε-closure({q0})` and apply `ε-closure` after each transition union, and display separate ε-closure derivations in the trace.
+5. **Animated String Testing & Viva Guide:** Add animated step-by-step string traversal on both NFA and DFA graphs side-by-side, plus a dedicated **How the Algorithm Works** page with an interactive subset-to-DFA-state demonstration.
+
+---
+
+### M2.2 Epsilon-NFA Conversion Pseudocode
+
+```text
+function EPSILON_CLOSURE(NFA, S):
+    closure ← set(S)
+    worklist ← list(S)
+    while worklist is not empty:
+        q ← worklist.pop()
+        for each t in δ(q, ε):
+            if t not in closure:
+                closure.add(t)
+                worklist.append(t)
+    return frozenset(closure)
+
+function SUBSET_CONSTRUCTION(NFA):
+    q0_subset ← EPSILON_CLOSURE(NFA, {q0}) if has_epsilon else frozenset({q0})
+    subset_to_label[q0_subset] ← 'A'
+    queue ← deque([q0_subset])
+    while queue is not empty:
+        S ← queue.popleft()
+        L ← subset_to_label[S]
+        for each symbol a in sorted(Σ):
+            raw_union ← ⋃ { δ(q, a) for q in S }
+            T ← EPSILON_CLOSURE(NFA, raw_union) if (has_epsilon and raw_union) else frozenset(raw_union)
+            if T not in subset_to_label:
+                assign next label to T
+                queue.append(T)
+            δ'(L, a) ← subset_to_label[T]
+            record ConversionStep and ConversionSnapshot
+    F' ← { L | subset(L) ∩ F ≠ ∅ }
+    return ConversionResult(DFA, steps, snapshots)
+```
+
+---
+
+### M2.3 Complexity Analysis
+- **Worst-Case State Complexity:** For an NFA with $n = |Q|$ states, the powerset $\mathcal{P}(Q)$ contains $2^n$ subsets. In the worst case (e.g., the language of binary strings whose $n$-th symbol from the end is `1`), all $2^n$ subsets are reachable from `{q0}`, giving $\Theta(2^n)$ DFA states.
+- **Practical Reachable-Subset Exploration:** Using BFS (`collections.deque`) starting from `{q0}` (or `ε-closure({q0})`) ensures only **reachable** subsets $R \subseteq \mathcal{P}(Q)$ are ever constructed. For typical classroom NFAs, $|R| \ll 2^n$.
+- **Time Complexity:** Let $|R|$ be the number of reachable DFA states. Each state is dequeued once; for each of $|\Sigma|$ symbols, computing the union over at most $n$ NFA states takes $O(n)$ (plus $O(|Q| + |E_\varepsilon|)$ for `ε-closure` if ε-transitions exist), and `frozenset` dictionary lookup is $O(1)$ average. Total conversion time is $O(|R| \cdot |\Sigma| \cdot n)$ without ε-transitions.
+
+---
+
+### M2.4 Milestone 2 Automated Test Results (63 Tests)
+All **63 `pytest` tests** pass (`python -m pytest -v`, 0.18s):
+
+| Test Module | Count | Scope & Edge Cases Covered |
+| :--- | :---: | :--- |
+| `tests/test_conversion.py` | 9 | Label generation (`A..Z, AA`), `01`-ending NFA, explicit `∅` trap-state self-loops, unreachable NFA state pruning, multi-branch NFAs, duplicate `frozenset` prevention, `q0 ∈ F` & multiple accepting states, 1-symbol & 3-symbol alphabets, `ConversionSnapshot` 1-to-1 replay integrity. |
+| `tests/test_epsilon.py` | 4 | `ε-closure` chains & cycles, validator allowing `ε` outside `Σ`, `ε-NFA` (`a*b*`) conversion & bounded exhaustive equivalence (all 63 strings over `{a, b}` up to length 5), `ε-closure` applied after symbol transitions. |
+| `tests/test_simulator.py` | 5 | Built-in test strings (`01`, `101`, `001`, `10`, `111`, `010`, `""`), invalid symbol rejection, empty string acceptance when `q0 ∈ F`, bounded exhaustive equivalence over `{0, 1}` up to length 6 (127 strings) and `{a, b, c}` up to length 4 (121 strings). |
+| `tests/test_validation.py` | 9 | Valid NFA, missing/undeclared `q0`, undeclared `F`, empty `Q` / `Σ`, undeclared state/symbol in `δ`, empty transitions treated as `∅`. |
+| `tests/test_edge_cases.py` | 36 | Multiple transitions fanning to all states, overlapping union deduplication, missing transitions creating trap, trap never accepting, trap self-loops on all symbols, total DFA transition function, duplicate subset prevention (simple & 4-state), DFA accepting state membership correctness, multiple final states, initial state accepting / `q0 ∈ F`, empty string accepted/rejected based on `F` membership, invalid symbol detection (single/multi), valid & empty string pass-through, unary & 4-symbol alphabets, step count = states × symbols, exhaustive bounded equivalence (ends-01 to length 7: 255 strings, contains-ab to length 6: 127 strings, starts-a to length 5: 63 strings), snapshot count equals steps, last snapshot queue empty, first snapshot from initial state, `total_snapshots` backfill, monotonically growing partial transitions, final snapshot matches DFA, 5-state reachability bound ≤ 32, total DFA function on 5-state, `format_subset` utility (empty, singleton, ordered, mixed numeric). |
+
+**Testing Methodology:**
+- Exhaustive bounded testing is used for small automata (alphabet size ≤ 3, string length ≤ 7) to verify complete language equivalence, not just spot-checks.
+- For larger alphabets or longer strings, representative sub-samples and property-based checks are used.
+- Complexity limit is stated explicitly: exhaustive testing is feasible up to ~8-state NFAs / length-6 strings on binary alphabets in sub-second pytest runs.

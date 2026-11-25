@@ -152,3 +152,267 @@ h3 {
 .stButton>button:hover {
     border-color: var(--primary-blue);
 }
+
+
+/* ---------------------------------------------------------------------------
+   Milestone 2: Live Simulator, Queue & Live Transition Table
+   --------------------------------------------------------------------------- */
+
+.exec-panel, .queue-panel {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-top: 3px solid var(--primary-blue);
+    border-radius: 6px;
+    padding: 1rem 1.15rem;
+    margin-bottom: 0.75rem;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.exec-panel-title {
+    font-weight: 700;
+    font-size: 0.98rem;
+    color: var(--navy-header);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.4rem;
+    margin-bottom: 0.65rem;
+}
+
+.exec-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.45rem 1rem;
+    margin-bottom: 0.6rem;
+    font-size: 0.92rem;
+}
+
+.exec-lbl {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.exec-row {
+    font-size: 0.91rem;
+    margin-top: 0.35rem;
+    color: var(--text-primary);
+}
+
+.status-new {
+    color: #1D4ED8;
+    font-weight: 700;
+}
+
+.status-reused {
+    color: #0F766E;
+    font-weight: 700;
+}
+
+.exec-complete {
+    margin-top: 0.65rem;
+    padding: 0.5rem 0.75rem;
+    background-color: var(--success-bg);
+    border: 1px solid var(--success-border);
+    color: var(--success-text);
+    border-radius: 4px;
+    font-size: 0.88rem;
+    font-weight: 600;
+}
+
+/* BFS Queue Chips */
+.q-section {
+    margin-bottom: 0.55rem;
+}
+
+.q-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+}
+
+.q-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.q-chip {
+    display: inline-block;
+    padding: 0.22rem 0.55rem;
+    border-radius: 4px;
+    font-size: 0.82rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-weight: 600;
+    border: 1px solid var(--border-color);
+}
+
+.q-chip-current {
+    background-color: #FEF9C3;
+    border-color: #D97706;
+    color: #92400E;
+}
+
+.q-chip-new {
+    background-color: #EFF6FF;
+    border-color: #2563EB;
+    color: #1E40AF;
+}
+
+.q-chip-pending {
+    background-color: #F1F5F9;
+    border-color: #94A3B8;
+    color: #334155;
+}
+
+.q-chip-done {
+    background-color: #F8FAFC;
+    border-color: #CBD5E1;
+    color: #64748B;
+}
+
+.q-empty {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.q-footer {
+    margin-top: 0.5rem;
+    padding-top: 0.4rem;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+
+/* Live DFA Transition Table */
+.live-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: #FFFFFF;
+}
+
+.live-dfa-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+}
+
+.live-dfa-table th {
+    background-color: #0F172A;
+    color: #FFFFFF;
+    text-align: left;
+    padding: 0.55rem 0.7rem;
+    font-weight: 600;
+    border-bottom: 2px solid var(--primary-blue);
+}
+
+.live-dfa-table td {
+    padding: 0.5rem 0.7rem;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.live-row-current {
+    background-color: #FEFCE8;
+}
+
+.live-row-new {
+    background-color: #EFF6FF;
+}
+
+.live-row-accept {
+    background-color: #F0FDF4;
+}
+
+.live-cell-active {
+    background-color: #FDE68A !important;
+    outline: 2px solid #D97706;
+    outline-offset: -2px;
+}
+
+.live-pending {
+    color: #94A3B8;
+    font-style: italic;
+}
+
+.tbl-badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 0.1rem 0.35rem;
+    border-radius: 3px;
+    margin-left: 0.25rem;
+    vertical-align: middle;
+}
+
+.tbl-badge-cur {
+    background-color: #D97706;
+    color: #FFFFFF;
+}
+
+.tbl-badge-new {
+    background-color: #2563EB;
+    color: #FFFFFF;
+}
+
+/* ---------------------------------------------------------------------------
+   Milestone 2: Additional polish for viva / demo readiness
+   --------------------------------------------------------------------------- */
+
+/* Progress bar styling */
+.stProgress > div > div {
+    background-color: var(--primary-blue);
+    border-radius: 4px;
+}
+
+/* Code block styling (math breakdown) */
+.stCode {
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 0.88rem;
+}
+
+/* Metric tile labels */
+[data-testid="stMetricLabel"] {
+    color: var(--text-muted) !important;
+    font-size: 0.82rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+[data-testid="stMetricValue"] {
+    color: var(--navy-header) !important;
+    font-weight: 700 !important;
+}
+
+/* Caption text */
+.stCaption {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+}
+
+/* Radio buttons in sidebar */
+[data-testid="stSidebar"] [data-testid="stRadio"] label {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+
+/* Expander heading */
+.stExpander summary {
+    font-weight: 600;
+    color: var(--primary-blue);
+}
+
+/* Info boxes */
+.stAlert {
+    border-radius: 4px;
+}
+
+/* Graphviz chart container */
+.stGraphvizChart {
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 0.5rem;
+    background: white;
+}

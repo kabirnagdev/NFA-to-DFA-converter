@@ -1,127 +1,121 @@
-# NFA to DFA Conversion Simulator
+# NFA to DFA Interactive Simulator — Milestone 2
 
-An interactive, educational web application designed for undergraduate **Automata Theory** and **Theory of Computation** (B.Tech Computer Science & Engineering) course evaluations.
+An interactive, educational web application for undergraduate **Automata Theory** and **Theory of Computation** courses. It converts Non-deterministic Finite Automata (including ε-NFAs) to equivalent Deterministic Finite Automata using the **Rabin–Scott Subset Construction Algorithm**, with live animated step-by-step visualization.
 
-The application allows students, educators, and researchers to formally specify a Non-deterministic Finite Automaton (NFA), validate its structural constraints, convert it into an equivalent Deterministic Finite Automaton (DFA) using the **Subset Construction Algorithm (Rabin-Scott)**, inspect the mathematical derivation step by step, and simulate string acceptance synchronously across both automata.
+---
+
+## Milestone 2 Highlights
+
+| Feature | Status |
+| :--- | :---: |
+| Rabin–Scott Subset Construction (BFS + `frozenset` + `deque`) | ✅ Complete |
+| Live animated step-by-step simulator (Play / Pause / Next / Prev / Reset / Speed) | ✅ Complete |
+| BFS queue visualization (current / pending / newly discovered / processed) | ✅ Complete |
+| Dynamic mathematical breakdown (δ-union formula per step) | ✅ Complete |
+| Continuously updating live DFA transition table (pending cells + highlight) | ✅ Complete |
+| Animated NFA + partial DFA Graphviz diagrams (synchronized with step) | ✅ Complete |
+| ε-NFA support (ε-closure, ε-NFA conversion, separate closure trace) | ✅ Complete |
+| String Tester (animated NFA + DFA side-by-side, equivalence verification) | ✅ Complete |
+| **63 pytest tests** (27 existing + 36 new edge-case tests) | ✅ 63 / 63 Pass |
+| Comprehensive technical documentation | ✅ Complete |
+| Educational presets (5 built-in examples including ε-NFA) | ✅ Complete |
 
 ---
 
 ## 1. Problem Statement
 
-In Automata Theory, Non-deterministic Finite Automata (NFAs) allow a system to transition into multiple concurrent states or zero states on a given input symbol. While NFAs simplify formal design and regular expression conversion, physical hardware and software lexical analyzers (like compilers and tokenizers) require deterministic execution where each step is uniquely determined in $O(|w|)$ time.
+In Automata Theory, NFAs allow multiple concurrent transitions or zero transitions on a single input symbol. While NFAs simplify formal design, deterministic execution requires a DFA. The **Subset Construction Algorithm** proves that for every NFA $M$, there exists an equivalent DFA $M'$ such that $L(M) = L(M')$.
 
-The **Subset Construction Algorithm** proves that NFAs and DFAs have identical expressive power: for every NFA $M$, there exists an equivalent DFA $M'$ such that $L(M) = L(M')$. However, students often struggle to visualize the powerset exploration, set-union transitions, and trap-state generation. This simulator bridges that gap by providing complete algorithmic transparency, rigorous validation, and side-by-side execution verification.
+This simulator makes that proof visible: it records `ConversionSnapshot` objects at each BFS micro-step and replays them so users can watch exactly how the algorithm works, step by step.
 
 ---
 
-## 2. Key Features
+## 2. Features
 
-- **Formal NFA Definition**: Full 5-tuple specification ($Q, \Sigma, q_0, F, \delta$) with multi-target transitions.
-- **Interactive Transition Table Editor**: Intuitive grid editor using Streamlit data tables supporting single and multi-state targets (e.g. `q0, q1`) or empty transitions (`∅` / `-`).
-- **Comprehensive Validation Suite**:
-  - Detection of undeclared states or symbols
-  - Verification of initial state and accepting states
-  - Prevention of malformed or empty definitions
-  - Graceful treatment of empty transitions as the empty set ($\emptyset$), not an error
-- **Subset Construction Engine**:
-  - Breadth-First Search (BFS) using Python's `collections.deque`
-  - Reachable-state generation only (avoids $2^{|Q|}$ unnecessary states)
-  - Explicit trap state ($\emptyset$) handling with deterministic self-loops for all symbols
-  - Set and frozenset representation preventing duplicate subsets
-  - Consistent state labeling ($A, B, C, \dots$)
-- **Step-by-Step Conversion Derivation**:
-  - Detailed table showing Current DFA subset, input symbol, individual transitions $\delta(q, a)$, set unions, and destination DFA state
-  - State discovery indicators: *New State Discovered* vs *Existing State Visited*
-- **Visual State Diagrams**:
-  - Graphviz-rendered directed multigraphs for both NFA and DFA
-  - Initial state incoming start arrows
-  - Double-circle nodes for accepting states
-  - Merged multi-symbol transition edges
-- **Synchronous String Simulator**:
-  - Test custom input strings or use one-click test suites
-  - Simulates both automata simultaneously
-  - Displays DFA deterministic traversal path alongside NFA active state sets
-  - Formal proof and verification of language equivalence
-  - Handles the empty string ($\epsilon$) and flags symbols outside $\Sigma$
-- **State Complexity Analysis**:
-  - Matplotlib visualization comparing $|Q|$ vs $|Q'|$ vs theoretical powerset bound $2^{|Q|}$.
+### Core Algorithm
+- Rabin–Scott Subset Construction with BFS (`collections.deque`)
+- `frozenset` subset identity guaranteeing zero duplicate states
+- Explicit `∅` trap state with self-loops on all symbols
+- Epsilon-closure for ε-NFAs: initial state = ε-closure({q₀})
+- Complete deterministic DFA from any NFA or ε-NFA input
+
+### Live Simulator (Page 5)
+- **Play / Pause** auto-advance with configurable speed (0.4s – 2.5s per step)
+- **Next Step / Previous Step** for manual control (true undo via snapshot replay)
+- **Reset** to step 1; **End** to jump to the final step
+- **Current Execution Panel**: DFA state, NFA subset, input symbol, operation, formula, result, discovery status
+- **BFS Queue Visualization**: color-coded chips for current / pending / newly discovered / processed states
+- **Mathematical Breakdown**: live `δ(q, a)` individual transitions + union + ε-closure display
+- **Live DFA Transition Table**: amber highlight for active row/cell, blue for new states, green for accepting
+- **Animated DFA Graph**: partial graph growing step-by-step in real time
+
+### ε-NFA Support
+- Checkbox to enable ε-transitions in the input form
+- ε-closure computation (iterative BFS, handles cycles)
+- Separate ε-closure steps displayed in the mathematical breakdown
+- 2 ε-NFA presets: `a*b*` and ε-chain
+
+### String Tester (Page 6)
+- Animated character-by-character traversal on both NFA and DFA graphs
+- Side-by-side comparison with ACCEPTED / REJECTED banner
+- Quick test presets adapted to the current alphabet
+- Full execution trace tables for DFA path and NFA active state sets
+- Equivalence verification per string
+
+### Algorithm Guide (Page 7)
+- NFA and DFA formal definitions
+- Transition function formula: $\delta'(S, a) = \bigcup_{q \in S} \delta(q, a)$
+- Interactive subset-to-DFA-state example with adjustable multiselect
+- Explanations of BFS, frozenset, trap states, and 2ⁿ complexity
 
 ---
 
 ## 3. Technology Stack
 
-- **Language**: Python 3.13 / 3.x
-- **Frontend / UI**: Streamlit (Reactive web framework, session-state persistence)
-- **Automata Representation**: Python `set`, `frozenset`, `dict`, and `dataclasses`
-- **Graph Traversal**: `collections.deque` (FIFO Breadth-First Search)
-- **Automata Diagrams**: Graphviz (DOT language generation and rendering)
-- **Supporting Visualization**: Matplotlib
-- **Testing**: `pytest`
-- **Data Tables**: `pandas`
+| Component | Technology |
+| :--- | :--- |
+| Language | Python 3.13 |
+| UI Framework | Streamlit ≥ 1.30 |
+| Automata Graph | Graphviz 0.21 |
+| Supporting Plots | Matplotlib ≥ 3.7 |
+| Data Tables | Pandas ≥ 2.0 |
+| Testing | pytest ≥ 8.0 |
 
 ---
 
 ## 4. Mathematical Model
 
 ### NFA Formal Specification
-An NFA is a 5-tuple:
 $$M = (Q, \Sigma, \delta, q_0, F)$$
-where:
-1. $Q$ is a finite non-empty set of states.
-2. $\Sigma$ is a finite input alphabet.
-3. $\delta: Q \times \Sigma \to 2^Q$ is the transition function mapping a state and symbol to a subset of $Q$.
-4. $q_0 \in Q$ is the initial start state.
-5. $F \subseteq Q$ is the set of final / accepting states.
 
 ### DFA Formal Specification
-The equivalent DFA is a 5-tuple:
 $$M' = (Q', \Sigma, \delta', q'_0, F')$$
-where:
-1. $Q' \subseteq 2^Q$ is the set of reachable subsets of $Q$.
-2. $\Sigma$ is the identical input alphabet.
-3. $q'_0 = \{q_0\}$ is the initial DFA state.
-4. $\delta': Q' \times \Sigma \to Q'$ is the deterministic transition function defined as:
-   $$\delta'(S, a) = \bigcup_{q \in S} \delta(q, a) \quad \text{for } S \in Q', a \in \Sigma$$
-5. $F' = \{S \in Q' \mid S \cap F \neq \emptyset\}$ is the set of accepting DFA states.
+
+### Transition Function
+$$\delta'(S, a) = \bigcup_{q \in S} \delta(q, a)$$
+
+For ε-NFAs:
+$$\delta'(S, a) = \varepsilon\text{-closure}\!\left(\bigcup_{q \in S} \delta(q, a)\right)$$
+
+### Accepting States
+$$F' = \{ S \in Q' \mid S \cap F \neq \emptyset \}$$
+
+### Complexity
+- **Worst case**: $\Theta(2^n)$ DFA states for an $n$-state NFA.
+- **BFS exploration**: Only reachable subsets are ever constructed, so $|R| \ll 2^n$ in practice.
+- **Time**: $O(|R| \cdot |\Sigma| \cdot n)$ where $|R|$ = reachable DFA states.
 
 ---
 
-## 5. Built-in Demonstration Example
+## 5. Built-in Demonstration Presets
 
-The simulator includes a standard benchmark NFA accepting all binary strings ending in `"01"`:
-
-- $Q = \{q_0, q_1, q_2\}$
-- $\Sigma = \{0, 1\}$
-- $q_0 = q_0$
-- $F = \{q_2\}$
-
-**Transition Function ($\delta$):**
-- $\delta(q_0, 0) = \{q_0, q_1\}$
-- $\delta(q_0, 1) = \{q_0\}$
-- $\delta(q_1, 0) = \emptyset$
-- $\delta(q_1, 1) = \{q_2\}$
-- $\delta(q_2, 0) = \emptyset$
-- $\delta(q_2, 1) = \emptyset$
-
-**Resulting Converted DFA:**
-- State $A = \{q_0\}$ (Initial)
-- State $B = \{q_0, q_1\}$
-- State $C = \{q_0, q_2\}$ (Accepting, since $q_2 \in C$)
-
-| DFA State | Subset | On '0' | On '1' | Accepting? |
-| :---: | :---: | :---: | :---: | :---: |
-| **A** | $\{q_0\}$ | B | A | No |
-| **B** | $\{q_0, q_1\}$ | B | C | No |
-| **C** | $\{q_0, q_2\}$ | B | A | **Yes (*)** |
-
-**Test String Evaluations:**
-- `"01"` $\to$ **Accepted**
-- `"101"` $\to$ **Accepted**
-- `"001"` $\to$ **Accepted**
-- `"10"` $\to$ **Rejected**
-- `"111"` $\to$ **Rejected**
-- `"010"` $\to$ **Rejected**
-- $\epsilon$ (Empty string) $\to$ **Rejected**
+| Preset | Language | Type |
+| :--- | :--- | :--- |
+| **Demo: Strings ending in '01'** | $\{w \in \{0,1\}^* \mid w \text{ ends with } 01\}$ | Ordinary NFA |
+| **Second symbol is 'a'** | $\{w \in \{a,b\}^* \mid |w| \geq 2 \wedge w[1] = a\}$ | Ordinary NFA |
+| **Strings containing '010'** | $\{w \in \{0,1\}^* \mid 010 \in w\}$ | Ordinary NFA (4 states) |
+| **ε-NFA: a\* followed by b\*** | $a^* b^*$ | ε-NFA |
+| **ε-NFA: ε-chain** | All strings over `{a,b}` | ε-NFA (ε-closure demo) |
 
 ---
 
@@ -130,35 +124,38 @@ The simulator includes a standard benchmark NFA accepting all binary strings end
 ```
 nfa-dfa-simulator/
 │
-├── app.py                      # Main Streamlit application and page controller
-├── requirements.txt            # Python dependencies
-├── README.md                   # Complete academic documentation
+├── app.py                      # Streamlit page controller (7 pages)
+├── requirements.txt            # Dependencies
+├── README.md                   # This file
 │
-├── core/                       # Core automata theory engine
-│   ├── __init__.py
-│   ├── nfa.py                  # NFA data structure and serialization
-│   ├── dfa.py                  # DFA data structure and subset helpers
-│   ├── conversion.py           # BFS subset construction engine & trace
-│   ├── validation.py           # Formal input validation & error reporting
-│   └── simulator.py            # Synchronous string execution & equivalence proof
+├── core/                       # Algorithmic engine (pure Python, no UI)
+│   ├── nfa.py                  # NFA model, epsilon_closure()
+│   ├── dfa.py                  # DFA model, state_subsets mapping
+│   ├── conversion.py           # SubsetConstructionEngine, ConversionStep, ConversionSnapshot
+│   ├── validation.py           # NFAValidator, ValidationResult
+│   └── simulator.py            # AutomataSimulator: NFA/DFA string simulation & comparison
 │
-├── visualization/              # Visualization modules
-│   ├── __init__.py
-│   └── automata_graph.py       # Graphviz DOT generator & Matplotlib plots
+├── visualization/
+│   └── automata_graph.py       # Graphviz DOT generators (NFA, DFA, partial DFA)
 │
-├── components/                 # Reusable Streamlit UI components
-│   ├── __init__.py
-│   ├── input_form.py           # NFA 5-tuple input form & transition editor
-│   ├── transition_table.py     # Tabular views for NFA and DFA transitions
-│   └── conversion_trace.py     # Granular step-by-step conversion tables & cards
+├── components/
+│   ├── input_form.py           # NFA 5-tuple form, presets, validation triggers
+│   ├── transition_table.py     # NFA/DFA tables + live HTML DFA table
+│   └── conversion_trace.py     # Live simulator: controls, panels, math, graphs
 │
-├── tests/                      # Automated pytest unit test suite
-│   ├── test_conversion.py      # Subset construction correctness tests
-│   ├── test_validation.py      # Input boundary and error validation tests
-│   └── test_simulator.py       # String simulation and 100% equivalence tests
+├── tests/
+│   ├── conftest.py             # Shared pytest fixtures
+│   ├── test_conversion.py      # 9 core algorithm tests
+│   ├── test_epsilon.py         # 4 ε-NFA tests (incl. 63-string bounded equivalence)
+│   ├── test_simulator.py       # 5 string simulation tests (incl. 127-string exhaustive)
+│   ├── test_validation.py      # 9 validation boundary tests
+│   └── test_edge_cases.py      # 36 Milestone 2 edge-case tests
+│
+├── docs/
+│   └── SYSTEM_DOCUMENTATION.md  # Full academic report
 │
 └── assets/
-    └── style.css               # Clean academic typography & UI styling
+    └── style.css               # Academic UI styling (navy + white + blue)
 ```
 
 ---
@@ -166,118 +163,76 @@ nfa-dfa-simulator/
 ## 7. Installation & Setup
 
 ### Prerequisites
-- Python 3.9+ (Python 3.11, 3.12, 3.13 supported)
-- Graphviz (Optional system package; Streamlit renders DOT diagrams natively)
+- Python 3.9+ (tested on 3.13)
+- Graphviz (Streamlit renders DOT natively — optional system install)
 
-### Step 1: Clone or Open Project Directory
+### Quick Start
 ```bash
-cd nfa-dfa-simulator
-```
+# 1. Clone repository
+git clone https://github.com/kabirnagdev/NFA-to-DFA-converter
+cd NFA-to-DFA-converter
 
-### Step 2: Create a Virtual Environment (Recommended)
-```bash
+# 2. Create virtual environment (recommended)
 python -m venv venv
+venv\Scripts\activate      # Windows
+source venv/bin/activate   # macOS/Linux
 
-# On Windows:
-venv\Scripts\activate
-
-# On macOS/Linux:
-source venv/bin/activate
-```
-
-### Step 3: Install Dependencies
-```bash
+# 3. Install dependencies
 pip install -r requirements.txt
-```
 
----
-
-## 8. Running the Application
-
-Launch the Streamlit web application:
-
-```bash
+# 4. Run the application
 streamlit run app.py
 ```
 
-The application will automatically open in your default browser at `http://localhost:8501`.
+The application opens at `http://localhost:8501`.
 
 ---
 
-## 9. Running Automated Tests
-
-Run the complete automated test suite using `pytest`:
+## 8. Running Tests
 
 ```bash
-python -m pytest tests -v
+python -m pytest tests/ -v
 ```
 
-All 18 tests cover:
-1. Normal subset construction conversion.
-2. State label generation ($A, B, \dots$).
-3. Multi-branch NFA transitions.
-4. Empty subset / trap state self-loop verification.
-5. Rejection of undeclared states and symbols in definitions.
-6. Acceptance and rejection of test strings across both NFA and DFA.
-7. Exhaustive language equivalence verification over 127 generated strings.
+**Expected output: 63 tests, 100% pass rate.**
+
+| Test File | Tests | Coverage |
+| :--- | :---: | :--- |
+| `test_conversion.py` | 9 | Core algorithm, trap state, unreachable states, label generation, snapshots |
+| `test_epsilon.py` | 4 | ε-closure chains/cycles, ε-NFA conversion, 63-string bounded equivalence |
+| `test_simulator.py` | 5 | String tests, invalid symbols, 127-string exhaustive equivalence |
+| `test_validation.py` | 9 | Missing states, undeclared symbols, empty definitions |
+| `test_edge_cases.py` | 36 | Multiple transitions, trap state, duplicate subsets, accepting states, alphabet sizes, snapshot integrity, 5-state NFA |
+
+> **Note on exhaustive testing**: Equivalence between NFA and DFA is verified on *all* strings up to a stated length, not just selected examples. For the standard NFA (3 states, binary alphabet), all 255 binary strings up to length 7 are tested. For ε-NFA (`a*b*`), all 63 strings over `{a,b}` up to length 5 are tested.
 
 ---
 
-## 10. Screenshots
+## 9. How to Use (Demo Guide)
 
-*(Placeholders for lab report and presentation evaluations)*
-
-### 1. NFA Configuration & Interactive Transition Editor
-```
-+-----------------------------------------------------------------------+
-|  Set of States (Q): q0, q1, q2     Alphabet (Σ): 0, 1                |
-|  Initial State: q0                 Final States (F): q2               |
-|                                                                       |
-|  Transition Editor Table:                                             |
-|  | Current State | Input Symbol | Next States                        |
-|  | q0            | 0            | q0, q1                             |
-|  | q0            | 1            | q0                                 |
-|  | q1            | 0            |                                    |
-|  | q1            | 1            | q2                                 |
-+-----------------------------------------------------------------------+
-```
-
-### 2. Converted DFA Diagram & Step-by-Step Derivation
-```
-+-----------------------------------------------------------------------+
-|  DFA State Transition Diagram:                                        |
-|  (start) -> [ A: {q0} ] -- 0 --> [ B: {q0, q1} ]                     |
-|                   ^                     |                             |
-|                   |-- 1 ----------------+-- 1 --> (( C: {q0, q2} ))   |
-|                                                                       |
-|  Step 1: δ'(A, 0) = δ(q0, 0) = {q0, q1} = B (New State)               |
-|  Step 2: δ'(A, 1) = δ(q0, 1) = {q0}     = A (Existing State)          |
-+-----------------------------------------------------------------------+
-```
-
-### 3. Dual Automata String Simulator
-```
-+-----------------------------------------------------------------------+
-|  Input String: "101"                                                  |
-|  [ RESULT: ACCEPTED - Both NFA and DFA accepted the string ]         |
-|                                                                       |
-|  DFA Traversal:   A -> A (on 1) -> B (on 0) -> C (on 1) [Accept]      |
-|  NFA Active Sets: {q0} -> {q0} -> {q0, q1} -> {q0, q2} [Accept]       |
-+-----------------------------------------------------------------------+
-```
+1. **Overview page** — Click "Demo: Ends with '01'" to load the standard example.
+2. **Live Simulator (Page 5)** — Press ▶ Play and watch the BFS algorithm execute:
+   - Current Execution Panel shows the exact operation being computed.
+   - BFS Queue updates after each step.
+   - Mathematical Breakdown shows each `δ(q, a)` individually.
+   - Live DFA Table adds rows and fills cells as they are computed.
+   - DFA Graph grows state by state.
+3. **String Tester (Page 6)** — Enter `101` and press Run Test to see side-by-side animated traversal.
+4. **NFA Setup (Page 2)** — Build a custom NFA or load any of the 5 presets.
+5. **How the Algorithm Works (Page 7)** — Interactive math reference for viva preparation.
 
 ---
 
-## 11. Current Scope & Future Improvements
+## 10. Viva Reference
 
-### Current Scope (Milestone 1)
-- Supports ordinary NFAs without $\epsilon$-transitions.
-- Subset Construction with BFS exploration.
-- Deterministic DFA generation, state subset mapping, and validation.
-- Dual simulation and equivalence testing.
+**What is a trap state?**
+When the union $\bigcup_{q \in S} \delta(q, a) = \emptyset$, the NFA has no valid successor. In a DFA every transition must be defined, so $\emptyset$ becomes an explicit non-accepting state that loops to itself on every symbol.
 
-### Planned Milestone 2 Additions
-- Support for $\epsilon$-NFAs with $\epsilon$-closure computation.
-- DFA state minimization using Hopcroft's or Moore's partitioning algorithm.
-- Regular expression to NFA conversion (Thompson's Construction).
-- Direct export of converted transition matrices to LaTeX and CSV.
+**Why `frozenset`?**
+A Python `frozenset` is immutable and hashable, allowing $O(1)$ average-time lookup in the `subset_to_label` dictionary to detect whether a subset has already been assigned a DFA state label.
+
+**Why BFS (`collections.deque`)?**
+BFS explores reachable subsets level by level from $\{q_0\}$, avoiding the full $2^n$ powerset enumeration. In practice only reachable subsets $R \subseteq \mathcal{P}(Q)$ are ever created.
+
+**Why can the DFA reach $2^n$ states?**
+Every subset of $Q$ can in principle become a reachable DFA state. The classical worst case is the language of binary strings whose $n$-th symbol from the end is `1`.

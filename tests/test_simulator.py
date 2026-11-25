@@ -109,3 +109,34 @@ def test_exhaustive_language_equivalence(builtin_automata):
         # If it ends with '01', it must be accepted; otherwise rejected
         expected = test_str.endswith("01")
         assert cmp_res.dfa_result.is_accepted == expected
+
+
+def test_bounded_equivalence_three_symbol_alphabet():
+    """
+    Bounded exhaustive equivalence test on a 3-symbol alphabet {a, b, c}
+    for strings up to length 4 (1 + 3 + 9 + 27 + 81 = 121 strings).
+    """
+    nfa = NFA(
+        states=["q0", "q1", "q2"],
+        alphabet=["a", "b", "c"],
+        initial_state="q0",
+        final_states=["q2"],
+        transitions={
+            ("q0", "a"): {"q0", "q1"},
+            ("q0", "b"): {"q0"},
+            ("q0", "c"): {"q0"},
+            ("q1", "b"): {"q2"},
+        },
+    )
+    dfa = SubsetConstructionEngine(nfa).convert().dfa
+
+    all_strings = [""]
+    for length in range(1, 5):
+        for combo in itertools.product(["a", "b", "c"], repeat=length):
+            all_strings.append("".join(combo))
+
+    assert len(all_strings) == 121
+    for w in all_strings:
+        cmp_res = AutomataSimulator.compare(nfa, dfa, w)
+        assert cmp_res.is_equivalent is True, f"Mismatch on '{w}'"
+        assert cmp_res.dfa_result.is_accepted == w.endswith("ab")
